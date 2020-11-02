@@ -961,13 +961,13 @@ searchTree :: (Measured v a) =>
 searchTree _ _ Empty _ = illegal_argument "searchTree"
 searchTree _ _ (Single x) _ = Split Empty x Empty
 searchTree p vl (Deep _ pr m sf) vr
-  | p vlp vmsr  =  let  Split l x r     =  searchDigit p vl pr vmsr
-                   in   Split (maybe Empty digitToTree l) x (deepL r m sf)
-  | p vlpm vsr  =  let  Split ml xs mr  =  searchTree p vlp m vsr
-                        Split l x r     =  searchNode p (vlp `mappend` measure ml) xs (measure mr `mappend` vsr)
-                   in   Split (deepR pr  ml l) x (deepL r mr sf)
-  | otherwise   =  let  Split l x r     =  searchDigit p vlpm sf vr
-                   in   Split (deepR pr  m  l) x (maybe Empty digitToTree r)
+  | p vlp vmsr = case searchDigit p vl pr vmsr of
+    Split l x r -> Split (maybe Empty digitToTree l) x (deepL r m sf)
+  | p vlpm vsr = case searchTree p vlp m vsr of
+    Split ml xs mr -> case searchNode p (vlp `mappend` measure ml) xs (measure mr `mappend` vsr) of
+        Split l x r -> Split (deepR pr ml l) x (deepL r mr sf)
+  | otherwise = case searchDigit p vlpm sf vr of
+    Split l x r -> Split (deepR pr m l) x (maybe Empty digitToTree r)
   where
     vlp     =  vl `mappend` measure pr
     vlpm    =  vlp `mappend` vm
@@ -1061,13 +1061,13 @@ splitTree :: (Measured v a) =>
 splitTree _ _ Empty = illegal_argument "splitTree"
 splitTree _ _ (Single x) = Split Empty x Empty
 splitTree p i (Deep _ pr m sf)
-  | p vpr       =  let  Split l x r     =  splitDigit p i pr
-                   in   Split (maybe Empty digitToTree l) x (deepL r m sf)
-  | p vm        =  let  Split ml xs mr  =  splitTree p vpr m
-                        Split l x r     =  splitNode p (vpr `mappend` measure ml) xs
-                   in   Split (deepR pr  ml l) x (deepL r mr sf)
-  | otherwise   =  let  Split l x r     =  splitDigit p vm sf
-                   in   Split (deepR pr  m  l) x (maybe Empty digitToTree r)
+  | p vpr = case splitDigit p i pr of
+    Split l x r -> Split (maybe Empty digitToTree l) x (deepL r m sf)
+  | p vm = case splitTree p vpr m of
+    Split ml xs mr -> case splitNode p (vpr `mappend` measure ml) xs of
+        Split l x r -> Split (deepR pr  ml l) x (deepL r mr sf)
+  | otherwise = case splitDigit p vm sf of
+    Split l x r -> Split (deepR pr  m  l) x (maybe Empty digitToTree r)
   where
     vpr     =  i    `mappend`  measure pr
     vm      =  vpr  `mappend`  measure m
