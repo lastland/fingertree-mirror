@@ -163,7 +163,7 @@ empty = PQueue FT.empty
 singleton :: Ord k => k -> v -> PQueue k v
 singleton k v = PQueue (FT.singleton (Entry k v))
 
--- | /O(log n)/. Add a (priority, value) pair to the front of a priority queue.
+-- | /O(1)/. Add a (priority, value) pair to the front of a priority queue.
 --
 -- * @'insert' k v q = 'union' ('singleton' k v) q@
 --
