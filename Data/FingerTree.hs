@@ -885,7 +885,7 @@ addDigits4 m1 (Four a b c d) e f g h (Four i j k l) m2 =
 --
 -- @since 0.1.2.0
 data SearchResult v a
-    = Position (FingerTree v a) a (FingerTree v a)
+    = Position !(FingerTree v a) a !(FingerTree v a)
         -- ^ A tree opened at a particular element: the prefix to the
         -- left, the element, and the suffix to the right.
     | OnLeft
@@ -1054,7 +1054,7 @@ takeUntil p  =  fst . split p
 dropUntil :: (Measured v a) => (v -> Bool) -> FingerTree v a -> FingerTree v a
 dropUntil p  =  snd . split p
 
-data Split t a = Split t a t
+data Split t a = Split !t a !t
 
 splitTree :: (Measured v a) =>
     (v -> Bool) -> v -> FingerTree v a -> Split (FingerTree v a) a
