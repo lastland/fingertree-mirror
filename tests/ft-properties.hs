@@ -71,19 +71,14 @@ main = defaultMainWithOpts
 
 infix 4 ~=
 
-(~=) :: Eq a => Maybe a -> a -> Bool
-(~=) = maybe (const False) (==)
+(~=) :: (Eq a, Measured [a] a, Valid a) => Seq a -> [a] -> Bool
+s ~= xs = valid s && toList s == xs
 
 -- Partial conversion of an output sequence to a list.
 toList' :: (Eq a, Measured [a] a, Valid a) => Seq a -> Maybe [a]
 toList' xs
   | valid xs = Just (toList xs)
   | otherwise = Nothing
-
-toListPair' ::
-    (Eq a, Measured [a] a, Valid a, Eq b, Measured [b] b, Valid b) =>
-        (Seq a, Seq b) -> Maybe ([a], [b])
-toListPair' (xs, ys) = (,) <$> toList' xs <*> toList' ys
 
 -- instances
 
@@ -111,7 +106,7 @@ prop_compare xs ys =
 
 prop_mappend :: Seq A -> Seq A -> Bool
 prop_mappend xs ys =
-    toList' (mappend xs ys) ~= toList xs ++ toList ys
+    mappend xs ys ~= toList xs ++ toList ys
 
 -- * Construction
 
@@ -121,23 +116,23 @@ test_empty =
 
 prop_singleton :: A -> Bool
 prop_singleton x =
-    toList' (singleton x) ~= [x]
+    singleton x ~= [x]
 
 prop_cons :: A -> Seq A -> Bool
 prop_cons x xs =
-    toList' (x <| xs) ~= x : toList xs
+    x <| xs ~= x : toList xs
 
 prop_snoc :: Seq A -> A -> Bool
 prop_snoc xs x =
-    toList' (xs |> x) ~= toList xs ++ [x]
+    xs |> x ~= toList xs ++ [x]
 
 prop_append :: Seq A -> Seq A -> Bool
 prop_append xs ys =
-    toList' (xs >< ys) ~= toList xs ++ toList ys
+    xs >< ys ~= toList xs ++ toList ys
 
 prop_fromList :: [A] -> Bool
 prop_fromList xs =
-    toList' (fromList xs) ~= xs
+    fromList xs ~= xs
 
 -- * Deconstruction
 
@@ -164,13 +159,13 @@ prop_search n xs =
         OnLeft         -> n >= len || null xs
         OnRight        -> n < 0
         Nowhere        -> error "impossible: the predicate is monotonic"
-  where p vl vr = Prelude.length vl >= len - n && Prelude.length vr <= n
+  where
+    p vl vr = Prelude.length vl >= len - n && Prelude.length vr <= n
 
-        len = length xs
+    len = length xs
 
-        indexFromEnd :: Int -> [a] -> Maybe a
-        indexFromEnd i = listToMaybe . drop i . Prelude.reverse
-
+    indexFromEnd :: Int -> [a] -> Maybe a
+    indexFromEnd i = listToMaybe . drop i . Prelude.reverse
 
 test_search :: Assertion
 test_search = do
@@ -188,40 +183,43 @@ test_search = do
 
 prop_split :: Int -> Seq A -> Bool
 prop_split n xs =
-    toListPair' (split p xs) ~= Prelude.splitAt n (toList xs)
-  where p ys = Prelude.length ys > n
+    s_front ~= l_front && s_back ~= l_back
+  where
+    p ys = Prelude.length ys > n
+    (s_front, s_back) = split p xs
+    (l_front, l_back) = Prelude.splitAt n (toList xs)
 
 prop_takeUntil :: Int -> Seq A -> Bool
 prop_takeUntil n xs =
-    toList' (takeUntil p xs) ~= Prelude.take n (toList xs)
+    takeUntil p xs ~= Prelude.take n (toList xs)
   where p ys = Prelude.length ys > n
 
 prop_dropUntil :: Int -> Seq A -> Bool
 prop_dropUntil n xs =
-    toList' (dropUntil p xs) ~= Prelude.drop n (toList xs)
+    dropUntil p xs ~= Prelude.drop n (toList xs)
   where p ys = Prelude.length ys > n
 
 -- * Transformation
 
 prop_reverse :: Seq A -> Bool
 prop_reverse xs =
-    toList' (reverse xs) ~= Prelude.reverse (toList xs)
+    reverse xs ~= Prelude.reverse (toList xs)
 
 prop_fmap' :: Seq A -> Bool
 prop_fmap' xs =
-    toList' (fmap' f xs) ~= map f (toList xs)
+    fmap' f xs ~= map f (toList xs)
   where f = Just
 
 prop_fmapWithPos :: Seq A -> Bool
 prop_fmapWithPos xs =
-    toList' (fmapWithPos f xs) ~= zipWith f (inits xs_list) xs_list
+    fmapWithPos f xs ~= zipWith f (inits xs_list) xs_list
   where
     f = (,)
     xs_list = toList xs
 
 prop_traverse' :: Seq A -> Bool
 prop_traverse' xs =
-    toList' (evalM (traverse' f xs)) ~= evalM (traverse f (toList xs))
+    evalM (traverse' f xs) ~= evalM (traverse f (toList xs))
   where
     f x = do
         n <- step
@@ -229,7 +227,7 @@ prop_traverse' xs =
 
 prop_traverseWithPos :: Seq A -> Bool
 prop_traverseWithPos xs =
-    toList' (evalM (traverseWithPos f xs)) ~= evalM (traverse (uncurry f) (zip (inits xs_list) xs_list))
+    evalM (traverseWithPos f xs) ~= evalM (traverse (uncurry f) (zip (inits xs_list) xs_list))
   where
     f xs y = do
         n <- step
