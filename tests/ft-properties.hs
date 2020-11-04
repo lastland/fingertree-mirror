@@ -237,7 +237,7 @@ prop_traverseWithPos xs =
     xs_list = toList xs
 
 {- untested:
-traverseWithPos
+traverseWithContext
 -}
 
 ------------------------------------------------------------------------
