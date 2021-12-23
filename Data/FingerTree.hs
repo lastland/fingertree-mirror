@@ -16,6 +16,7 @@
 -- |
 -- Module      :  Data.FingerTree
 -- Copyright   :  (c) Ross Paterson, Ralf Hinze 2006
+--             :  (c) James Cranch 2021
 -- License     :  BSD-style
 -- Maintainer  :  R.Paterson@city.ac.uk
 -- Stability   :  experimental
@@ -68,6 +69,8 @@ module Data.FingerTree (
     reverse,
     -- ** Maps
     fmap', fmapWithPos, fmapWithContext, unsafeFmap,
+    -- ** Folds
+    foldlWithPos, foldrWithPos, foldlWithContext, foldrWithContext,
     -- ** Traversals
     traverse', traverseWithPos, traverseWithContext, unsafeTraverse,
     -- * Example
@@ -414,6 +417,246 @@ traverseDigit f (One a) = One <$> f a
 traverseDigit f (Two a b) = Two <$> f a <*> f b
 traverseDigit f (Three a b c) = Three <$> f a <*> f b <*> f c
 traverseDigit f (Four a b c d) = Four <$> f a <*> f b <*> f c <*> f d
+
+-- | Like 'foldl' but with a function that also takes the measure of
+-- the prefix to the left of the element.
+--
+-- @since 0.1.5.0
+foldlWithPos :: (Measured v a) =>
+    (b -> v -> a -> b) -> b -> FingerTree v a -> b
+foldlWithPos f x = foldlWPTree f x mempty
+
+foldlWPTree :: (Measured v a) =>
+    (b -> v -> a -> b) -> b -> v -> FingerTree v a -> b
+foldlWPTree _ a _ Empty = a
+foldlWPTree f a v (Single x) = f a v x
+foldlWPTree f a0 v0 (Deep _ l m r) = let
+  a1 = foldlWPDigit f a0 v0 l
+  v1 = v0 `mappend` measure l
+  a2 = foldlWPTree (foldlWPNode f) a1 v1 m
+  v2 = v1 `mappend` measure m
+  in foldlWPDigit f a2 v2 r
+
+foldlWPDigit :: (Measured v a) =>
+    (b -> v -> a -> b) -> b -> v -> Digit a -> b
+foldlWPDigit f a0 v0 (One x0) = f a0 v0 x0
+foldlWPDigit f a0 v0 (Two x0 x1) = let
+  a1 = f a0 v0 x0
+  v1 = v0 `mappend` measure x0
+  in f a1 v1 x1
+foldlWPDigit f a0 v0 (Three x0 x1 x2) = let
+  a1 = f a0 v0 x0
+  v1 = v0 `mappend` measure x0
+  a2 = f a1 v1 x1
+  v2 = v1 `mappend` measure x1
+  in f a2 v2 x2
+foldlWPDigit f a0 v0 (Four x0 x1 x2 x3) = let
+  a1 = f a0 v0 x0
+  v1 = v0 `mappend` measure x0
+  a2 = f a1 v1 x1
+  v2 = v1 `mappend` measure x1
+  a3 = f a2 v2 x2
+  v3 = v2 `mappend` measure x2
+  in f a3 v3 x3
+
+foldlWPNode :: (Measured v a) =>
+    (b -> v -> a -> b) -> b -> v -> Node v a -> b
+foldlWPNode f a0 v0 (Node2 _ x0 x1) = let
+  a1 = f a0 v0 x0
+  v1 = v0 `mappend` measure x0
+  in f a1 v1 x1
+foldlWPNode f a0 v0 (Node3 _ x0 x1 x2) = let
+  a1 = f a0 v0 x0
+  v1 = v0 `mappend` measure x0
+  a2 = f a1 v1 x1
+  v2 = v1 `mappend` measure x1
+  in f a2 v2 x2
+
+-- | Like 'foldr' but with a function that also takes the measure of
+-- the prefix to the left of the element.
+--
+-- @since 0.1.5.0
+foldrWithPos :: (Measured v a) =>
+    (v -> a -> b -> b) -> b -> FingerTree v a -> b
+foldrWithPos f x = foldrWPTree f x mempty
+
+foldrWPTree :: (Measured v a) =>
+    (v -> a -> b -> b) -> b -> v -> FingerTree v a -> b
+foldrWPTree _ a _ Empty = a
+foldrWPTree f a v (Single x) = f v x a
+foldrWPTree f a2 v0 (Deep _ l m r) = let
+  v1 = v0 `mappend` measure l
+  v2 = v1 `mappend` measure m
+  a1 = foldrWPDigit f a2 v2 r
+  a0 = foldrWPTree  (\v a b -> foldrWPNode f b v a) a1 v1 m
+  in   foldrWPDigit f a0 v0 l
+
+foldrWPDigit :: (Measured v a) =>
+    (v -> a -> b -> b) -> b -> v -> Digit a -> b
+foldrWPDigit f a0 v0 (One x0) = f v0 x0 a0
+foldrWPDigit f a1 v0 (Two x0 x1) = let
+  v1 = v0 `mappend` measure x0
+  a0 = f v1 x1 a1
+  in   f v0 x0 a0
+foldrWPDigit f a2 v0 (Three x0 x1 x2) = let
+  v1 = v0 `mappend` measure x0
+  v2 = v1 `mappend` measure x1
+  a1 = f v2 x2 a2
+  a0 = f v1 x1 a1
+  in   f v0 x0 a0
+foldrWPDigit f a3 v0 (Four x0 x1 x2 x3) = let
+  v1 = v0 `mappend` measure x0
+  v2 = v1 `mappend` measure x1
+  v3 = v2 `mappend` measure x2
+  a2 = f v3 x3 a3
+  a1 = f v2 x2 a2
+  a0 = f v1 x1 a1
+  in   f v0 x0 a0
+
+foldrWPNode :: (Measured v a) =>
+    (v -> a -> b -> b) -> b -> v -> Node v a -> b
+foldrWPNode f a1 v0 (Node2 _ x0 x1) = let
+  v1 = v0 `mappend` measure x0
+  a0 = f v1 x1 a1
+  in   f v0 x0 a0
+foldrWPNode f a2 v0 (Node3 _ x0 x1 x2) = let
+  v1 = v0 `mappend` measure x0
+  v2 = v1 `mappend` measure x1
+  a1 = f v2 x2 a2
+  a0 = f v1 x1 a1
+  in   f v0 x0 a0
+
+-- | Like 'foldl' but with a function that also takes the measure of
+-- the prefix to the left of the element and the measure of the suffix
+-- to the right of the element.
+--
+-- @since 0.1.5.0
+foldlWithContext :: (Measured v a) =>
+    (b -> v -> a -> v -> b) -> b -> FingerTree v a -> b
+foldlWithContext f x t = foldlWCTree f x mempty t mempty
+
+foldlWCTree :: (Measured v a) =>
+    (b -> v -> a -> v -> b) -> b -> v -> FingerTree v a -> v -> b
+foldlWCTree _ a _ Empty _ = a
+foldlWCTree f a v (Single x) w = f a v x w
+foldlWCTree f a0 v0 (Deep _ l m r) w2 = let
+  v1 = v0 `mappend` measure l
+  v2 = v1 `mappend` measure m
+  w1 = measure r `mappend` w2
+  w0 = measure m `mappend` w1
+  a1 = foldlWCDigit f a0 v0 l w0
+  a2 = foldlWCTree (foldlWCNode f) a1 v1 m w1
+  in   foldlWCDigit f a2 v2 r w2
+
+foldlWCDigit :: (Measured v a) =>
+    (b -> v -> a -> v -> b) -> b -> v -> Digit a -> v -> b
+foldlWCDigit f a0 v0 (One x0) w0 = f a0 v0 x0 w0
+foldlWCDigit f a0 v0 (Two x0 x1) w1 = let
+  v1 = v0 `mappend` measure x0
+  w0 = measure x1 `mappend` w1
+  a1 = f a0 v0 x0 w0
+  in   f a1 v1 x1 w1
+foldlWCDigit f a0 v0 (Three x0 x1 x2) w2 = let
+  v1 = v0 `mappend` measure x0
+  v2 = v1 `mappend` measure x1
+  w1 = measure x2 `mappend` w2
+  w0 = measure x1 `mappend` w1
+  a1 = f a0 v0 x0 w0
+  a2 = f a1 v1 x1 w1
+  in   f a2 v2 x2 w2
+foldlWCDigit f a0 v0 (Four x0 x1 x2 x3) w3 = let
+  v1 = v0 `mappend` measure x0
+  v2 = v1 `mappend` measure x1
+  v3 = v2 `mappend` measure x2
+  w2 = measure x3 `mappend` w3
+  w1 = measure x2 `mappend` w2
+  w0 = measure x1 `mappend` w1
+  a1 = f a0 v0 x0 w0
+  a2 = f a1 v1 x1 w1
+  a3 = f a2 v2 x2 w2
+  in   f a3 v3 x3 w3
+
+foldlWCNode :: (Measured v a) =>
+    (b -> v -> a -> v -> b) -> b -> v -> Node v a -> v -> b
+foldlWCNode f a0 v0 (Node2 _ x0 x1) w1 = let
+  v1 = v0 `mappend` measure x0
+  w0 = measure x1 `mappend` w1
+  a1 = f a0 v0 x0 w0
+  in   f a1 v1 x1 w1
+foldlWCNode f a0 v0 (Node3 _ x0 x1 x2) w2 = let
+  v1 = v0 `mappend` measure x0
+  v2 = v1 `mappend` measure x1
+  w1 = measure x2 `mappend` w2
+  w0 = measure x1 `mappend` w1
+  a1 = f a0 v0 x0 w0
+  a2 = f a1 v1 x1 w1
+  in   f a2 v2 x2 w2
+
+-- | Like 'foldr' but with a function that also takes the measure of
+-- the prefix to the left of the element and the measure of the suffix
+-- to the right of the element.
+--
+-- @since 0.1.5.0
+foldrWithContext :: (Measured v a) =>
+    (v -> a -> v -> b -> b) -> b -> FingerTree v a -> b
+foldrWithContext f x t = foldrWCTree f x mempty t mempty
+
+foldrWCTree :: (Measured v a) =>
+    (v -> a -> v -> b -> b) -> b -> v -> FingerTree v a -> v -> b
+foldrWCTree _ a _ Empty _ = a
+foldrWCTree f a v (Single x) w = f v x w a
+foldrWCTree f a2 v0 (Deep _ l m r) w2 = let
+  v1 = v0 `mappend` measure l
+  v2 = v1 `mappend` measure m
+  w1 = measure r `mappend` w2
+  w0 = measure m `mappend` w1
+  a1 = foldrWCDigit f a2 v2 r w2
+  a0 = foldrWCTree (\v x w a -> foldrWCNode f a v x w) a1 v1 m w1
+  in   foldrWCDigit f a0 v0 l w0
+
+foldrWCDigit :: (Measured v a) =>
+    (v -> a -> v -> b -> b) -> b -> v -> Digit a -> v -> b
+foldrWCDigit f a0 v0 (One x0) w0 = f v0 x0 w0 a0
+foldrWCDigit f a1 v0 (Two x0 x1) w1 = let
+  v1 = v0 `mappend` measure x0
+  w0 = measure x1 `mappend` w1
+  a0 = f v1 x1 w1 a1
+  in   f v0 x0 w0 a0
+foldrWCDigit f a2 v0 (Three x0 x1 x2) w2 = let
+  v1 = v0 `mappend` measure x0
+  v2 = v1 `mappend` measure x1
+  w1 = measure x2 `mappend` w2
+  w0 = measure x1 `mappend` w1
+  a1 = f v2 x2 w2 a2
+  a0 = f v1 x1 w1 a1
+  in   f v0 x0 w0 a0
+foldrWCDigit f a3 v0 (Four x0 x1 x2 x3) w3 = let
+  v1 = v0 `mappend` measure x0
+  v2 = v1 `mappend` measure x1
+  v3 = v2 `mappend` measure x2
+  w2 = measure x3 `mappend` w3
+  w1 = measure x2 `mappend` w2
+  w0 = measure x1 `mappend` w1
+  a2 = f v3 x3 w3 a3
+  a1 = f v2 x2 w2 a2
+  a0 = f v1 x1 w1 a1
+  in   f v0 x0 w0 a0
+
+foldrWCNode :: (Measured v a) =>
+    (v -> a -> v -> b -> b) -> b -> v -> Node v a -> v -> b
+foldrWCNode f a1 v0 (Node2 _ x0 x1) w1 = let
+  v1 = v0 `mappend` measure x0
+  w0 = measure x1 `mappend` w1
+  a0 = f v1 x1 w1 a1
+  in   f v0 x0 w0 a0
+foldrWCNode f a2 v0 (Node3 _ x0 x1 x2) w2 = let
+  v1 = v0 `mappend` measure x0
+  v2 = v1 `mappend` measure x1
+  w1 = measure x2 `mappend` w2
+  w0 = measure x1 `mappend` w1
+  a1 = f v2 x2 w2 a2
+  a0 = f v1 x1 w1 a1
+  in   f v0 x0 w0 a0
 
 -- | Traverse the tree from left to right with a function that also
 -- takes the measure of the prefix of the tree to the left of the element.
