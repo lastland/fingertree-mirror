@@ -15,8 +15,9 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.FingerTree
--- Copyright   :  (c) Ross Paterson, Ralf Hinze 2006
---             :  (c) James Cranch 2021
+-- Copyright   :  Ross Paterson and Ralf Hinze 2006,
+--                Ross Paterson 2006-2018,
+--                James Cranch 2021
 -- License     :  BSD-style
 -- Maintainer  :  R.Paterson@city.ac.uk
 -- Stability   :  experimental
