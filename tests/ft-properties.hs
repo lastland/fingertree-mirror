@@ -48,9 +48,15 @@ main = defaultMainWithOpts
     , testProperty "dropUntil" prop_dropUntil
     , testProperty "reverse" prop_reverse
     , testProperty "fmap'" prop_fmap'
-    -- , testProperty "fmapWithPos" prop_fmapWithPos -- (slow)
+    , testProperty "fmapWithPos" prop_fmapWithPos
+    , testProperty "fmapWithContext" prop_fmapWithContext
+    , testProperty "foldlWithPos" prop_foldlWithPos
+    , testProperty "foldlWithContext" prop_foldlWithContext
+    , testProperty "foldrWithPos" prop_foldrWithPos
+    , testProperty "foldrWithContext" prop_foldrWithContext
     , testProperty "traverse'" prop_traverse'
-    -- , testProperty "traverseWithPos" prop_traverseWithPos -- (slow)
+    , testProperty "traverseWithPos" prop_traverseWithPos
+    , testProperty "traverseWithContext" prop_traverseWithContext
     ] runner_opts
   where
     runner_opts = mempty { ropt_test_options = Just test_opts }
@@ -71,7 +77,7 @@ main = defaultMainWithOpts
 
 infix 4 ~=
 
-(~=) :: (Eq a, Measured [a] a, Valid a) => Seq a -> [a] -> Bool
+(~=) :: (Eq a, Eq v, Measured v a, Valid a) => FingerTree v a -> [a] -> Bool
 s ~= xs = valid s && toList s == xs
 
 -- Partial conversion of an output sequence to a list.
@@ -140,6 +146,8 @@ prop_null :: Seq A -> Bool
 prop_null xs =
     null xs == Prelude.null (toList xs)
 
+-- ** Examining the ends
+
 prop_viewl :: Seq A -> Bool
 prop_viewl xs =
     case viewl xs of
@@ -151,6 +159,8 @@ prop_viewr xs =
     case viewr xs of
     EmptyR ->   Prelude.null (toList xs)
     xs' :> x -> valid xs' && toList xs == toList xs' ++ [x]
+
+-- ** Search
 
 prop_search :: Int -> Seq A -> Bool
 prop_search n xs =
@@ -181,6 +191,8 @@ test_search = do
                Position _ x _ -> Just x
                _              -> Nothing
 
+-- ** Splitting
+
 prop_split :: Int -> Seq A -> Bool
 prop_split n xs =
     s_front ~= l_front && s_back ~= l_back
@@ -192,12 +204,14 @@ prop_split n xs =
 prop_takeUntil :: Int -> Seq A -> Bool
 prop_takeUntil n xs =
     takeUntil p xs ~= Prelude.take n (toList xs)
-  where p ys = Prelude.length ys > n
+  where
+    p ys = Prelude.length ys > n
 
 prop_dropUntil :: Int -> Seq A -> Bool
 prop_dropUntil n xs =
     dropUntil p xs ~= Prelude.drop n (toList xs)
-  where p ys = Prelude.length ys > n
+  where
+    p ys = Prelude.length ys > n
 
 -- * Transformation
 
@@ -205,17 +219,67 @@ prop_reverse :: Seq A -> Bool
 prop_reverse xs =
     reverse xs ~= Prelude.reverse (toList xs)
 
+-- ** Maps
+
 prop_fmap' :: Seq A -> Bool
 prop_fmap' xs =
     fmap' f xs ~= map f (toList xs)
-  where f = Just
-
-prop_fmapWithPos :: Seq A -> Bool
-prop_fmapWithPos xs =
-    fmapWithPos f xs ~= zipWith f (inits xs_list) xs_list
   where
-    f = (,)
+    f = Just
+
+prop_fmapWithPos :: FingerTree MA VA -> Bool
+prop_fmapWithPos xs =
+    fmapWithPos f xs ~= zipWith f (prefixes xs_list) xs_list
+  where
+    f = WithPos
     xs_list = toList xs
+
+prop_fmapWithContext :: FingerTree MA VA -> Bool
+prop_fmapWithContext xs =
+    fmapWithContext f xs ~= zipWith3 f (prefixes xs_list) xs_list (suffixes xs_list)
+  where
+    f = WithContext
+    xs_list = toList xs
+
+-- ** Folds
+
+prop_foldlWithPos :: FingerTree MA VA -> Bool
+prop_foldlWithPos xs =
+    foldlWithPos f z xs == foldl uncurry_f z (zip (prefixes xs_list) xs_list)
+  where
+    z = []
+    f vxs v x = WithPos v x:vxs
+    uncurry_f vxs (v, x) = f vxs v x
+    xs_list = toList xs
+
+prop_foldlWithContext :: FingerTree MA VA -> Bool
+prop_foldlWithContext xs =
+    foldlWithContext f z xs == foldl uncurry_f z (zip3 (prefixes xs_list) xs_list (suffixes xs_list))
+  where
+    z = []
+    f vxs vl x vr = WithContext vl x vr:vxs
+    uncurry_f vxs (vl, x, vr) = f vxs vl x vr
+    xs_list = toList xs
+
+prop_foldrWithPos :: FingerTree MA VA -> Bool
+prop_foldrWithPos xs =
+    foldrWithPos f z xs == foldr uncurry_f z (zip (prefixes xs_list) xs_list)
+  where
+    z = []
+    f v x vxs = WithPos v x:vxs
+    uncurry_f (v, x) vxs = f v x vxs
+    xs_list = toList xs
+
+prop_foldrWithContext :: FingerTree MA VA -> Bool
+prop_foldrWithContext xs =
+    foldrWithContext f z xs == foldr uncurry_f z (zip3 (prefixes xs_list) xs_list (suffixes xs_list))
+  where
+    z = []
+    f vl x vr vxs = WithContext vl x vr:vxs
+    uncurry_f (vl, x, vr) vxs = f vl x vr vxs
+    xs_list = toList xs
+
+-- ** Traversals
 
 prop_traverse' :: Seq A -> Bool
 prop_traverse' xs =
@@ -225,22 +289,32 @@ prop_traverse' xs =
         n <- step
         return (n, x)
 
-prop_traverseWithPos :: Seq A -> Bool
+prop_traverseWithPos :: FingerTree MA VA -> Bool
 prop_traverseWithPos xs =
-    evalM (traverseWithPos f xs) ~= evalM (traverse (uncurry f) (zip (inits xs_list) xs_list))
+    evalM (traverseWithPos f xs) ~= evalM (traverse (uncurry f) (zip (prefixes xs_list) xs_list))
   where
-    f xs y = do
+    f v y = do
         n <- step
-        return (xs, n, y)
+        return (WithPos v (n, y))
     xs_list = toList xs
 
-{- untested:
-foldlWithPos
-foldrWithPos
-foldlWithContext
-foldrWithContext
-traverseWithContext
--}
+prop_traverseWithContext :: FingerTree MA VA -> Bool
+prop_traverseWithContext xs =
+    evalM (traverseWithContext f xs) ~= evalM (traverse uncurry_f (zip3 (prefixes xs_list) xs_list (suffixes xs_list)))
+  where
+    uncurry_f (vl, y, vr) = f vl y vr
+    f vl y vr = do
+        n <- step
+        return (WithContext vl (n, y) vr)
+    xs_list = toList xs
+
+-- measure to the left of each value
+prefixes :: (Measured v a) => [a] -> [v]
+prefixes = scanl (<>) mempty . map measure
+
+-- measure to the right of each value
+suffixes :: (Measured v a) => [a] -> [v]
+suffixes = tail . scanr (<>) mempty . map measure
 
 ------------------------------------------------------------------------
 -- QuickCheck
@@ -343,6 +417,57 @@ instance Measured [(a, b)] (a, b) where
 
 instance Measured [(a, b, c)] (a, b, c) where
     measure x = [x]
+
+------------------------------------------------------------------------
+-- A noncommutative monoid as a measure: semidirect product
+------------------------------------------------------------------------
+
+data MA = MA Int Int
+    deriving (Eq, Show)
+
+instance Semigroup MA where
+    MA a x <> MA b y = MA (a*b) (x + a*y)
+
+instance Monoid MA where
+    mempty = MA 1 0
+
+instance Valid MA where
+    valid = const True
+
+newtype VA = VA Int
+    deriving (Eq, Show)
+
+instance Measured MA VA where
+    measure (VA x) = MA 3 x
+
+instance Arbitrary VA where
+    arbitrary = VA <$> arbitrary
+    shrink (VA x) = map VA (shrink x)
+
+instance Valid VA where
+    valid = const True
+
+------------------------------------------------------------------------
+-- Values with positions and contexts
+------------------------------------------------------------------------
+
+data WithPos v a = WithPos v a
+    deriving (Eq, Show)
+
+instance Monoid v => Measured v (WithPos v a) where
+    measure (WithPos v _) = v
+
+instance (Valid v, Valid a) => Valid (WithPos v a) where
+    valid (WithPos v x) = valid v && valid x
+
+data WithContext v a = WithContext v a v
+    deriving (Eq, Show)
+
+instance Monoid v => Measured v (WithContext v a) where
+    measure (WithContext vl _ vr) = vl
+
+instance (Valid v, Valid a) => Valid (WithContext v a) where
+    valid (WithContext vl x vr) = valid vl && valid x && valid vr
 
 ------------------------------------------------------------------------
 -- Simple counting monad
