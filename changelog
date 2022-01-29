@@ -1,7 +1,8 @@
 -*-change-log-*-
 
-0.1.5.0 James Cranch <j.d.cranch@sheffield.ac.uk> Dec 2021
-	* Added foldlWithPos, foldrWithPos, foldlWithContext, foldrWithContext
+0.1.5.0 Ross Paterson <R.Paterson@city.ac.uk> Jan 2022
+	* Added foldlWithPos, foldrWithPos, foldlWithContext, foldrWithContext (James Cranch)
+	* Fixed bug in traverseWithContext
 
 0.1.4.2 Ross Paterson <R.Paterson@city.ac.uk> Dec 2018
 	* Fixed bug in search
