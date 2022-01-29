@@ -16,7 +16,7 @@
 -- |
 -- Module      :  Data.FingerTree
 -- Copyright   :  Ross Paterson and Ralf Hinze 2006,
---                Ross Paterson 2006-2018,
+--                Ross Paterson 2006-2022,
 --                James Cranch 2021
 -- License     :  BSD-style
 -- Maintainer  :  R.Paterson@city.ac.uk
@@ -291,39 +291,40 @@ fmapWithPos f = mapWPTree f mempty
 mapWPTree :: (Measured v1 a1, Measured v2 a2) =>
     (v1 -> a1 -> a2) -> v1 -> FingerTree v1 a1 -> FingerTree v2 a2
 mapWPTree _ _ Empty = Empty
-mapWPTree f v (Single x) = Single (f v x)
-mapWPTree f v (Deep _ pr m sf) =
-    deep (mapWPDigit f v pr)
-         (mapWPTree (mapWPNode f) vpr m)
-         (mapWPDigit f vm sf)
+mapWPTree f vl (Single x) = Single (f vl x)
+mapWPTree f vl (Deep _ pr m sf) =
+    deep (mapWPDigit f vl pr)
+         (mapWPTree (mapWPNode f) vlp m)
+         (mapWPDigit f vlpm sf)
   where
-    vpr     =  v    `mappend`  measure pr
-    vm      =  vpr  `mappend`  measure m
+    vlp     =  vl `mappend` measure pr
+    vlpm    =  vlp `mappend` measure m
 
 mapWPNode :: (Measured v1 a1, Measured v2 a2) =>
     (v1 -> a1 -> a2) -> v1 -> Node v1 a1 -> Node v2 a2
-mapWPNode f v (Node2 _ a b) = node2 (f v a) (f va b)
+mapWPNode f vl (Node2 _ a b) = node2 (f vl a) (f vla b)
   where
-    va      = v `mappend` measure a
-mapWPNode f v (Node3 _ a b c) = node3 (f v a) (f va b) (f vab c)
+    vla     =  vl `mappend` measure a
+mapWPNode f vl (Node3 _ a b c) = node3 (f vl a) (f vla b) (f vlab c)
   where
-    va      = v `mappend` measure a
-    vab     = va `mappend` measure b
+    va      =  vl `mappend` measure a
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
 
 mapWPDigit :: (Measured v a) => (v -> a -> b) -> v -> Digit a -> Digit b
-mapWPDigit f v (One a) = One (f v a)
-mapWPDigit f v (Two a b) = Two (f v a) (f va b)
+mapWPDigit f vl (One a) = One (f vl a)
+mapWPDigit f vl (Two a b) = Two (f vl a) (f vla b)
   where
-    va      = v `mappend` measure a
-mapWPDigit f v (Three a b c) = Three (f v a) (f va b) (f vab c)
+    vla     =  vl `mappend` measure a
+mapWPDigit f vl (Three a b c) = Three (f vl a) (f vla b) (f vlab c)
   where
-    va      = v `mappend` measure a
-    vab     = va `mappend` measure b
-mapWPDigit f v (Four a b c d) = Four (f v a) (f va b) (f vab c) (f vabc d)
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+mapWPDigit f vl (Four a b c d) = Four (f vl a) (f vla b) (f vlab c) (f vlabc d)
   where
-    va      = v `mappend` measure a
-    vab     = va `mappend` measure b
-    vabc    = vab `mappend` measure c
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vlabc   =  vlab `mappend` measure c
 
 -- | Map all elements of the tree with a function that also takes the
 -- measure of the prefix to the left and of the suffix to the right of
@@ -351,39 +352,41 @@ mapWCTree f vl (Deep _ pr m sf) vr =
 
 mapWCNode :: (Measured v1 a1, Measured v2 a2) =>
     (v1 -> a1 -> v1 -> a2) -> v1 -> Node v1 a1 -> v1 -> Node v2 a2
-mapWCNode f vl (Node2 _ a b) vr = node2 (f vl a vb) (f va b vr)
+mapWCNode f vl (Node2 _ a b) vr = node2 (f vl a vbr) (f vla b vr)
   where
-    va      = vl `mappend` measure a
-    vb      = measure b `mappend` vr
-mapWCNode f vl (Node3 _ a b c) vr = node3 (f vl a vbc) (f va b vc) (f vab c vr)
+    vla     =  vl `mappend` measure a
+    vbr     =  measure b `mappend` vr
+mapWCNode f vl (Node3 _ a b c) vr =
+    node3 (f vl a vbcr) (f vla b vcr) (f vlab c vr)
   where
-    va      = vl `mappend` measure a
-    vab     = va `mappend` measure b
-    vbc     = measure b `mappend` vc
-    vc      = measure c `mappend` vr
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vcr     =  measure c `mappend` vr
+    vbcr    =  measure b `mappend` vcr
 
 mapWCDigit ::
     (Measured v a) => (v -> a -> v -> b) -> v -> Digit a -> v -> Digit b
 mapWCDigit f vl (One a) vr = One (f vl a vr)
-mapWCDigit f vl (Two a b) vr = Two (f vl a vb) (f va b vr)
+mapWCDigit f vl (Two a b) vr = Two (f vl a vbr) (f vla b vr)
   where
-    va      = vl `mappend` measure a
-    vb      = measure b `mappend` vr
-mapWCDigit f vl (Three a b c) vr = Three (f vl a vbc) (f va b vc) (f vab c vr)
+    vla     =  vl `mappend` measure a
+    vbr     =  measure b `mappend` vr
+mapWCDigit f vl (Three a b c) vr =
+    Three (f vl a vbcr) (f vla b vcr) (f vlab c vr)
   where
-    va      = vl `mappend` measure a
-    vab     = va `mappend` measure b
-    vbc     = measure b `mappend` vc
-    vc      = measure c `mappend` vr
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vcr     =  measure c `mappend` vr
+    vbcr    =  measure b `mappend` vcr
 mapWCDigit f vl (Four a b c d) vr =
-    Four (f vl a vbcd) (f va b vcd) (f vab c vd) (f vabc d vr)
+    Four (f vl a vbcdr) (f vla b vcdr) (f vlab c vdr) (f vlabc d vr)
   where
-    va      = vl `mappend` measure a
-    vab     = va `mappend` measure b
-    vabc    = vab `mappend` measure c
-    vbcd    = measure b `mappend` vcd
-    vcd     = measure c `mappend` vd
-    vd      = measure d `mappend` vr
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vlabc   =  vlab `mappend` measure c
+    vdr     =  measure d `mappend` vr
+    vcdr    =  measure c `mappend` vdr
+    vbcdr   =  measure b `mappend` vcdr
 
 -- | Like 'fmap', but safe only if the function preserves the measure.
 unsafeFmap :: (a -> b) -> FingerTree v a -> FingerTree v b
@@ -395,6 +398,224 @@ unsafeFmap f (Deep v pr m sf) =
 unsafeFmapNode :: (a -> b) -> Node v a -> Node v b
 unsafeFmapNode f (Node2 v a b) = Node2 v (f a) (f b)
 unsafeFmapNode f (Node3 v a b c) = Node3 v (f a) (f b) (f c)
+
+-- | Fold the tree from the left with a function that also takes the
+-- measure of the prefix to the left of the element.
+--
+-- @since 0.1.5.0
+foldlWithPos :: (Measured v a) =>
+    (b -> v -> a -> b) -> b -> FingerTree v a -> b
+foldlWithPos f z = foldlWPTree f z mempty
+
+foldlWPTree :: (Measured v a) =>
+    (b -> v -> a -> b) -> b -> v -> FingerTree v a -> b
+foldlWPTree _ z _ Empty = z
+foldlWPTree f z vl (Single x) = f z vl x
+foldlWPTree f z vl (Deep _ pr m sf) = zpms
+  where
+    vlp     =  vl `mappend` measure pr
+    vlpm    =  vlp `mappend` measure m
+    zp      =  foldlWPDigit f z vl pr
+    zpm     =  foldlWPTree (foldlWPNode f) zp vlp m
+    zpms    =  foldlWPDigit f zpm vlpm sf
+
+foldlWPNode :: (Measured v a) =>
+    (b -> v -> a -> b) -> b -> v -> Node v a -> b
+foldlWPNode f z vl (Node2 _ a b) = f (f z vl a) vla b
+  where
+    vla     =  vl `mappend` measure a
+foldlWPNode f z vl (Node3 _ a b c) = f (f (f z vl a) vla b) vlab c
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+
+foldlWPDigit :: (Measured v a) =>
+    (b -> v -> a -> b) -> b -> v -> Digit a -> b
+foldlWPDigit f z vl (One a) = f z vl a
+foldlWPDigit f z vl (Two a b) = f (f z vl a) vla b
+  where
+    vla     =  vl `mappend` measure a
+foldlWPDigit f z vl (Three a b c) = f (f (f z vl a) vla b) vlab c
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+foldlWPDigit f z vl (Four a b c d) = f (f (f (f z vl a) vla b) vlab c) vlabc d
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vlabc   =  vlab `mappend` measure c
+
+-- | Fold the tree from the right with a function that also takes the
+-- measure of the prefix to the left of the element.
+--
+-- @since 0.1.5.0
+foldrWithPos :: (Measured v a) =>
+    (v -> a -> b -> b) -> b -> FingerTree v a -> b
+foldrWithPos f z = foldrWPTree f z mempty
+
+foldrWPTree :: (Measured v a) =>
+    (v -> a -> b -> b) -> b -> v -> FingerTree v a -> b
+foldrWPTree _ z _ Empty = z
+foldrWPTree f z vl (Single x) = f vl x z
+foldrWPTree f z vl (Deep _ pr m sf) = zpms
+  where
+    vlp     =  vl `mappend` measure pr
+    vlpm    =  vlp `mappend` measure m
+    zpms    =  foldrWPDigit f zms vl pr
+    zms     =  foldrWPTree (foldrWPNode f) zs vlp m
+    zs      =  foldrWPDigit f z vlpm sf
+
+-- different argument order for convenience
+foldrWPNode :: (Measured v a) =>
+    (v -> a -> b -> b) -> v -> Node v a -> b -> b
+foldrWPNode f vl (Node2 _ a b) z = f vl a (f vla b z)
+  where
+    vla     =  vl `mappend` measure a
+foldrWPNode f vl (Node3 _ a b c) z = f vl a (f vla b (f vlab c z))
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+
+foldrWPDigit :: (Measured v a) =>
+    (v -> a -> b -> b) -> b -> v -> Digit a -> b
+foldrWPDigit f z vl (One a) = f vl a z
+foldrWPDigit f z vl (Two a b) = f vl a (f vla b z)
+  where
+    vla     =  vl `mappend` measure a
+foldrWPDigit f z vl (Three a b c) = f vl a (f vla b (f vlab c z))
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+foldrWPDigit f z vl (Four a b c d) = f vl a (f vla b (f vlab c (f vlabc d z)))
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vlabc   =  vlab `mappend` measure c
+
+-- | Fold the tree from the left with a function that also takes the
+-- measure of the prefix to the left of the element and the measure of
+-- the suffix to the right of the element.
+--
+-- @since 0.1.5.0
+foldlWithContext :: (Measured v a) =>
+    (b -> v -> a -> v -> b) -> b -> FingerTree v a -> b
+foldlWithContext f z t = foldlWCTree f z mempty t mempty
+
+foldlWCTree :: (Measured v a) =>
+    (b -> v -> a -> v -> b) -> b -> v -> FingerTree v a -> v -> b
+foldlWCTree _ z _ Empty _ = z
+foldlWCTree f z vl (Single x) vr = f z vl x vr
+foldlWCTree f z vl (Deep _ pr m sf) vr = zpms
+  where
+    vlp     =  vl `mappend` measure pr
+    vlpm    =  vlp `mappend` vm
+    vmsr    =  vm `mappend` vsr
+    vsr     =  measure sf `mappend` vr
+    vm      =  measure m
+    zp      =  foldlWCDigit f z vl pr vmsr
+    zpm     =  foldlWCTree (foldlWCNode f) zp vlp m vsr
+    zpms    =  foldlWCDigit f zpm vlpm sf vr
+
+foldlWCNode :: (Measured v a) =>
+    (b -> v -> a -> v -> b) -> b -> v -> Node v a -> v -> b
+foldlWCNode f z vl (Node2 _ a b) vr = f (f z vl a vbr) vla b vr
+  where
+    vla     =  vl `mappend` measure a
+    vbr     =  measure b `mappend` vr
+foldlWCNode f z vl (Node3 _ a b c) vr =
+    f (f (f z vl a vbcr) vla b vcr) vlab c vr
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vcr     =  measure c `mappend` vr
+    vbcr    =  measure b `mappend` vcr
+
+foldlWCDigit :: (Measured v a) =>
+    (b -> v -> a -> v -> b) -> b -> v -> Digit a -> v -> b
+foldlWCDigit f z vl (One a) vr = f z vl a vr
+foldlWCDigit f z vl (Two a b) vr = f (f z vl a vbr) vla b vr
+  where
+    vla     =  vl `mappend` measure a
+    vbr     =  measure b `mappend` vr
+foldlWCDigit f z vl (Three a b c) vr =
+    f (f (f z vl a vbcr) vla b vcr) vlab c vr
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vcr     =  measure c `mappend` vr
+    vbcr    =  measure b `mappend` vcr
+foldlWCDigit f z vl (Four a b c d) vr =
+    f (f (f (f z vl a vbcdr) vla b vcdr) vlab c vdr) vlabc d vr
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vlabc   =  vlab `mappend` measure c
+    vdr     =  measure d `mappend` vr
+    vcdr    =  measure c `mappend` vdr
+    vbcdr   =  measure b `mappend` vcdr
+
+-- | Fold the tree from the right with a function that also takes the
+-- measure of the prefix to the left of the element and the measure of
+-- the suffix to the right of the element.
+--
+-- @since 0.1.5.0
+foldrWithContext :: (Measured v a) =>
+    (v -> a -> v -> b -> b) -> b -> FingerTree v a -> b
+foldrWithContext f z t = foldrWCTree f z mempty t mempty
+
+foldrWCTree :: (Measured v a) =>
+    (v -> a -> v -> b -> b) -> b -> v -> FingerTree v a -> v -> b
+foldrWCTree _ z _ Empty _ = z
+foldrWCTree f z vl (Single x) vr = f vl x vr z
+foldrWCTree f z vl (Deep _ pr m sf) vr = zpms
+  where
+    vlp     =  vl `mappend` measure pr
+    vlpm    =  vlp `mappend` vm
+    vmsr    =  vm `mappend` vsr
+    vsr     =  measure sf `mappend` vr
+    vm      =  measure m
+    zpms    =  foldrWCDigit f zms vl pr vmsr
+    zms     =  foldrWCTree (foldrWCNode f) zs vlp m vsr
+    zs      =  foldrWCDigit f z vlpm sf vr
+
+-- different argument order for convenience
+foldrWCNode :: (Measured v a) =>
+    (v -> a -> v -> b -> b) -> v -> Node v a -> v -> b -> b
+foldrWCNode f vl (Node2 _ a b) vr z = f vl a vbr (f vla b vr z)
+  where
+    vla     =  vl `mappend` measure a
+    vbr     =  measure b `mappend` vr
+foldrWCNode f vl (Node3 _ a b c) vr z =
+    f vl a vbcr (f vla b vcr (f vlab c vr z))
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vcr     =  measure c `mappend` vr
+    vbcr    =  measure b `mappend` vcr
+
+foldrWCDigit :: (Measured v a) =>
+    (v -> a -> v -> b -> b) -> b -> v -> Digit a -> v -> b
+foldrWCDigit f z vl (One a) vr = f vl a vr z
+foldrWCDigit f z vl (Two a b) vr = f vl a vbr (f vla b vr z)
+  where
+    vla     =  vl `mappend` measure a
+    vbr     =  measure b `mappend` vr
+foldrWCDigit f z vl (Three a b c) vr =
+    f vl a vbcr (f vla b vcr (f vlab c vr z))
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vcr     =  measure c `mappend` vr
+    vbcr    =  measure b `mappend` vcr
+foldrWCDigit f z vl (Four a b c d) vr =
+    f vl a vbcdr (f vla b vcdr (f vlab c vdr (f vlabc d vr z)))
+  where
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vlabc   =  vlab `mappend` measure c
+    vdr     =  measure d `mappend` vr
+    vcdr    =  measure c `mappend` vdr
+    vbcdr   =  measure b `mappend` vcdr
 
 -- | Like 'traverse', but with constraints on the element types.
 traverse' :: (Measured v1 a1, Measured v2 a2, Applicative f) =>
@@ -418,246 +639,6 @@ traverseDigit f (One a) = One <$> f a
 traverseDigit f (Two a b) = Two <$> f a <*> f b
 traverseDigit f (Three a b c) = Three <$> f a <*> f b <*> f c
 traverseDigit f (Four a b c d) = Four <$> f a <*> f b <*> f c <*> f d
-
--- | Like 'foldl' but with a function that also takes the measure of
--- the prefix to the left of the element.
---
--- @since 0.1.5.0
-foldlWithPos :: (Measured v a) =>
-    (b -> v -> a -> b) -> b -> FingerTree v a -> b
-foldlWithPos f x = foldlWPTree f x mempty
-
-foldlWPTree :: (Measured v a) =>
-    (b -> v -> a -> b) -> b -> v -> FingerTree v a -> b
-foldlWPTree _ a _ Empty = a
-foldlWPTree f a v (Single x) = f a v x
-foldlWPTree f a0 v0 (Deep _ l m r) = let
-  a1 = foldlWPDigit f a0 v0 l
-  v1 = v0 `mappend` measure l
-  a2 = foldlWPTree (foldlWPNode f) a1 v1 m
-  v2 = v1 `mappend` measure m
-  in foldlWPDigit f a2 v2 r
-
-foldlWPDigit :: (Measured v a) =>
-    (b -> v -> a -> b) -> b -> v -> Digit a -> b
-foldlWPDigit f a0 v0 (One x0) = f a0 v0 x0
-foldlWPDigit f a0 v0 (Two x0 x1) = let
-  a1 = f a0 v0 x0
-  v1 = v0 `mappend` measure x0
-  in f a1 v1 x1
-foldlWPDigit f a0 v0 (Three x0 x1 x2) = let
-  a1 = f a0 v0 x0
-  v1 = v0 `mappend` measure x0
-  a2 = f a1 v1 x1
-  v2 = v1 `mappend` measure x1
-  in f a2 v2 x2
-foldlWPDigit f a0 v0 (Four x0 x1 x2 x3) = let
-  a1 = f a0 v0 x0
-  v1 = v0 `mappend` measure x0
-  a2 = f a1 v1 x1
-  v2 = v1 `mappend` measure x1
-  a3 = f a2 v2 x2
-  v3 = v2 `mappend` measure x2
-  in f a3 v3 x3
-
-foldlWPNode :: (Measured v a) =>
-    (b -> v -> a -> b) -> b -> v -> Node v a -> b
-foldlWPNode f a0 v0 (Node2 _ x0 x1) = let
-  a1 = f a0 v0 x0
-  v1 = v0 `mappend` measure x0
-  in f a1 v1 x1
-foldlWPNode f a0 v0 (Node3 _ x0 x1 x2) = let
-  a1 = f a0 v0 x0
-  v1 = v0 `mappend` measure x0
-  a2 = f a1 v1 x1
-  v2 = v1 `mappend` measure x1
-  in f a2 v2 x2
-
--- | Like 'foldr' but with a function that also takes the measure of
--- the prefix to the left of the element.
---
--- @since 0.1.5.0
-foldrWithPos :: (Measured v a) =>
-    (v -> a -> b -> b) -> b -> FingerTree v a -> b
-foldrWithPos f x = foldrWPTree f x mempty
-
-foldrWPTree :: (Measured v a) =>
-    (v -> a -> b -> b) -> b -> v -> FingerTree v a -> b
-foldrWPTree _ a _ Empty = a
-foldrWPTree f a v (Single x) = f v x a
-foldrWPTree f a2 v0 (Deep _ l m r) = let
-  v1 = v0 `mappend` measure l
-  v2 = v1 `mappend` measure m
-  a1 = foldrWPDigit f a2 v2 r
-  a0 = foldrWPTree  (\v a b -> foldrWPNode f b v a) a1 v1 m
-  in   foldrWPDigit f a0 v0 l
-
-foldrWPDigit :: (Measured v a) =>
-    (v -> a -> b -> b) -> b -> v -> Digit a -> b
-foldrWPDigit f a0 v0 (One x0) = f v0 x0 a0
-foldrWPDigit f a1 v0 (Two x0 x1) = let
-  v1 = v0 `mappend` measure x0
-  a0 = f v1 x1 a1
-  in   f v0 x0 a0
-foldrWPDigit f a2 v0 (Three x0 x1 x2) = let
-  v1 = v0 `mappend` measure x0
-  v2 = v1 `mappend` measure x1
-  a1 = f v2 x2 a2
-  a0 = f v1 x1 a1
-  in   f v0 x0 a0
-foldrWPDigit f a3 v0 (Four x0 x1 x2 x3) = let
-  v1 = v0 `mappend` measure x0
-  v2 = v1 `mappend` measure x1
-  v3 = v2 `mappend` measure x2
-  a2 = f v3 x3 a3
-  a1 = f v2 x2 a2
-  a0 = f v1 x1 a1
-  in   f v0 x0 a0
-
-foldrWPNode :: (Measured v a) =>
-    (v -> a -> b -> b) -> b -> v -> Node v a -> b
-foldrWPNode f a1 v0 (Node2 _ x0 x1) = let
-  v1 = v0 `mappend` measure x0
-  a0 = f v1 x1 a1
-  in   f v0 x0 a0
-foldrWPNode f a2 v0 (Node3 _ x0 x1 x2) = let
-  v1 = v0 `mappend` measure x0
-  v2 = v1 `mappend` measure x1
-  a1 = f v2 x2 a2
-  a0 = f v1 x1 a1
-  in   f v0 x0 a0
-
--- | Like 'foldl' but with a function that also takes the measure of
--- the prefix to the left of the element and the measure of the suffix
--- to the right of the element.
---
--- @since 0.1.5.0
-foldlWithContext :: (Measured v a) =>
-    (b -> v -> a -> v -> b) -> b -> FingerTree v a -> b
-foldlWithContext f x t = foldlWCTree f x mempty t mempty
-
-foldlWCTree :: (Measured v a) =>
-    (b -> v -> a -> v -> b) -> b -> v -> FingerTree v a -> v -> b
-foldlWCTree _ a _ Empty _ = a
-foldlWCTree f a v (Single x) w = f a v x w
-foldlWCTree f a0 v0 (Deep _ l m r) w2 = let
-  v1 = v0 `mappend` measure l
-  v2 = v1 `mappend` measure m
-  w1 = measure r `mappend` w2
-  w0 = measure m `mappend` w1
-  a1 = foldlWCDigit f a0 v0 l w0
-  a2 = foldlWCTree (foldlWCNode f) a1 v1 m w1
-  in   foldlWCDigit f a2 v2 r w2
-
-foldlWCDigit :: (Measured v a) =>
-    (b -> v -> a -> v -> b) -> b -> v -> Digit a -> v -> b
-foldlWCDigit f a0 v0 (One x0) w0 = f a0 v0 x0 w0
-foldlWCDigit f a0 v0 (Two x0 x1) w1 = let
-  v1 = v0 `mappend` measure x0
-  w0 = measure x1 `mappend` w1
-  a1 = f a0 v0 x0 w0
-  in   f a1 v1 x1 w1
-foldlWCDigit f a0 v0 (Three x0 x1 x2) w2 = let
-  v1 = v0 `mappend` measure x0
-  v2 = v1 `mappend` measure x1
-  w1 = measure x2 `mappend` w2
-  w0 = measure x1 `mappend` w1
-  a1 = f a0 v0 x0 w0
-  a2 = f a1 v1 x1 w1
-  in   f a2 v2 x2 w2
-foldlWCDigit f a0 v0 (Four x0 x1 x2 x3) w3 = let
-  v1 = v0 `mappend` measure x0
-  v2 = v1 `mappend` measure x1
-  v3 = v2 `mappend` measure x2
-  w2 = measure x3 `mappend` w3
-  w1 = measure x2 `mappend` w2
-  w0 = measure x1 `mappend` w1
-  a1 = f a0 v0 x0 w0
-  a2 = f a1 v1 x1 w1
-  a3 = f a2 v2 x2 w2
-  in   f a3 v3 x3 w3
-
-foldlWCNode :: (Measured v a) =>
-    (b -> v -> a -> v -> b) -> b -> v -> Node v a -> v -> b
-foldlWCNode f a0 v0 (Node2 _ x0 x1) w1 = let
-  v1 = v0 `mappend` measure x0
-  w0 = measure x1 `mappend` w1
-  a1 = f a0 v0 x0 w0
-  in   f a1 v1 x1 w1
-foldlWCNode f a0 v0 (Node3 _ x0 x1 x2) w2 = let
-  v1 = v0 `mappend` measure x0
-  v2 = v1 `mappend` measure x1
-  w1 = measure x2 `mappend` w2
-  w0 = measure x1 `mappend` w1
-  a1 = f a0 v0 x0 w0
-  a2 = f a1 v1 x1 w1
-  in   f a2 v2 x2 w2
-
--- | Like 'foldr' but with a function that also takes the measure of
--- the prefix to the left of the element and the measure of the suffix
--- to the right of the element.
---
--- @since 0.1.5.0
-foldrWithContext :: (Measured v a) =>
-    (v -> a -> v -> b -> b) -> b -> FingerTree v a -> b
-foldrWithContext f x t = foldrWCTree f x mempty t mempty
-
-foldrWCTree :: (Measured v a) =>
-    (v -> a -> v -> b -> b) -> b -> v -> FingerTree v a -> v -> b
-foldrWCTree _ a _ Empty _ = a
-foldrWCTree f a v (Single x) w = f v x w a
-foldrWCTree f a2 v0 (Deep _ l m r) w2 = let
-  v1 = v0 `mappend` measure l
-  v2 = v1 `mappend` measure m
-  w1 = measure r `mappend` w2
-  w0 = measure m `mappend` w1
-  a1 = foldrWCDigit f a2 v2 r w2
-  a0 = foldrWCTree (\v x w a -> foldrWCNode f a v x w) a1 v1 m w1
-  in   foldrWCDigit f a0 v0 l w0
-
-foldrWCDigit :: (Measured v a) =>
-    (v -> a -> v -> b -> b) -> b -> v -> Digit a -> v -> b
-foldrWCDigit f a0 v0 (One x0) w0 = f v0 x0 w0 a0
-foldrWCDigit f a1 v0 (Two x0 x1) w1 = let
-  v1 = v0 `mappend` measure x0
-  w0 = measure x1 `mappend` w1
-  a0 = f v1 x1 w1 a1
-  in   f v0 x0 w0 a0
-foldrWCDigit f a2 v0 (Three x0 x1 x2) w2 = let
-  v1 = v0 `mappend` measure x0
-  v2 = v1 `mappend` measure x1
-  w1 = measure x2 `mappend` w2
-  w0 = measure x1 `mappend` w1
-  a1 = f v2 x2 w2 a2
-  a0 = f v1 x1 w1 a1
-  in   f v0 x0 w0 a0
-foldrWCDigit f a3 v0 (Four x0 x1 x2 x3) w3 = let
-  v1 = v0 `mappend` measure x0
-  v2 = v1 `mappend` measure x1
-  v3 = v2 `mappend` measure x2
-  w2 = measure x3 `mappend` w3
-  w1 = measure x2 `mappend` w2
-  w0 = measure x1 `mappend` w1
-  a2 = f v3 x3 w3 a3
-  a1 = f v2 x2 w2 a2
-  a0 = f v1 x1 w1 a1
-  in   f v0 x0 w0 a0
-
-foldrWCNode :: (Measured v a) =>
-    (v -> a -> v -> b -> b) -> b -> v -> Node v a -> v -> b
-foldrWCNode f a1 v0 (Node2 _ x0 x1) w1 = let
-  v1 = v0 `mappend` measure x0
-  w0 = measure x1 `mappend` w1
-  a0 = f v1 x1 w1 a1
-  in   f v0 x0 w0 a0
-foldrWCNode f a2 v0 (Node3 _ x0 x1 x2) w2 = let
-  v1 = v0 `mappend` measure x0
-  v2 = v1 `mappend` measure x1
-  w1 = measure x2 `mappend` w2
-  w0 = measure x1 `mappend` w1
-  a1 = f v2 x2 w2 a2
-  a0 = f v1 x1 w1 a1
-  in   f v0 x0 w0 a0
 
 -- | Traverse the tree from left to right with a function that also
 -- takes the measure of the prefix of the tree to the left of the element.
@@ -725,41 +706,41 @@ traverseWCTree f vl (Deep _ pr m sf) vr =
 
 traverseWCNode :: (Measured v1 a1, Measured v2 a2, Applicative f) =>
     (v1 -> a1 -> v1 -> f a2) -> v1 -> Node v1 a1 -> v1 -> f (Node v2 a2)
-traverseWCNode f vl (Node2 _ a b) vr = node2 <$> f vl a vb <*> f va b vr
+traverseWCNode f vl (Node2 _ a b) vr = node2 <$> f vl a vbr <*> f vla b vr
   where
-    va      = vl `mappend` measure a
-    vb      = measure a `mappend` vr
+    vla     =  vl `mappend` measure a
+    vbr     =  measure b `mappend` vr
 traverseWCNode f vl (Node3 _ a b c) vr =
-    node3 <$> f vl a vbc <*> f va b vc <*> f vab c vr
+    node3 <$> f vl a vbcr <*> f vla b vcr <*> f vlab c vr
   where
-    va      = vl `mappend` measure a
-    vab     = va `mappend` measure b
-    vc      = measure c `mappend` vr
-    vbc     = measure b `mappend` vc
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vcr     =  measure c `mappend` vr
+    vbcr    =  measure b `mappend` vcr
 
 traverseWCDigit :: (Measured v a, Applicative f) =>
     (v -> a -> v -> f b) -> v -> Digit a -> v -> f (Digit b)
 traverseWCDigit f vl (One a) vr = One <$> f vl a vr
-traverseWCDigit f vl (Two a b) vr = Two <$> f vl a vb <*> f va b vr
+traverseWCDigit f vl (Two a b) vr = Two <$> f vl a vbr <*> f vla b vr
   where
-    va      = vl `mappend` measure a
-    vb      = measure a `mappend` vr
+    vla     =  vl `mappend` measure a
+    vbr     =  measure b `mappend` vr
 traverseWCDigit f vl (Three a b c) vr =
-    Three <$> f vl a vbc <*> f va b vc <*> f vab c vr
+    Three <$> f vl a vbcr <*> f vla b vcr <*> f vlab c vr
   where
-    va      = vl `mappend` measure a
-    vab     = va `mappend` measure b
-    vc      = measure c `mappend` vr
-    vbc     = measure b `mappend` vc
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vcr     =  measure c `mappend` vr
+    vbcr    =  measure b `mappend` vcr
 traverseWCDigit f vl (Four a b c d) vr =
-    Four <$> f vl a vbcd <*> f va b vcd <*> f vab c vd <*> f vabc d vr
+    Four <$> f vl a vbcdr <*> f vla b vcdr <*> f vlab c vdr <*> f vlabc d vr
   where
-    va      = vl `mappend` measure a
-    vab     = va `mappend` measure b
-    vabc    = vab `mappend` measure c
-    vd      = measure d `mappend` vr
-    vcd     = measure c `mappend` vd
-    vbcd    = measure b `mappend` vcd
+    vla     =  vl `mappend` measure a
+    vlab    =  vla `mappend` measure b
+    vlabc   =  vlab `mappend` measure c
+    vdr     =  measure d `mappend` vr
+    vcdr    =  measure c `mappend` vdr
+    vbcdr   =  measure b `mappend` vcdr
 
 -- | Like 'traverse', but safe only if the function preserves the measure.
 unsafeTraverse :: (Applicative f) =>
@@ -1400,7 +1381,8 @@ Particular abstract data types may be implemented by defining
 element types with suitable 'Measured' instances.
 
 (from section 4.5 of the paper)
-Simple sequences can be implemented using a 'Sum' monoid as a measure:
+Simple sequences can be implemented using a 'Data.Monoid.Sum' monoid
+as a measure:
 
 > newtype Elem a = Elem { getElem :: a }
 >
