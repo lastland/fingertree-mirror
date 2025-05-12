@@ -33,7 +33,9 @@ Source-Repository head
   Location: http://hub.darcs.net/ross/fingertree
 
 Library
-  Build-Depends: base < 6
+  Build-Depends:
+                base < 6,
+                deepseq >= 1.4 && < 1.5
   Default-Language: Haskell2010
   Other-Extensions:
                 MultiParamTypeClasses
@@ -52,6 +54,7 @@ Test-suite ft-properties
   default-language: Haskell2010
   build-depends:
                 base >= 4.2 && < 6,
+                deepseq >= 1.4 && < 1.5,
                 HUnit,
                 QuickCheck,
                 test-framework,
