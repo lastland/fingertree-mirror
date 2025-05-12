@@ -415,9 +415,6 @@ instance Measured [Maybe a] (Maybe a) where
 instance Measured [(a, b)] (a, b) where
     measure x = [x]
 
-instance Measured [(a, b, c)] (a, b, c) where
-    measure x = [x]
-
 ------------------------------------------------------------------------
 -- A noncommutative monoid as a measure: semidirect product
 ------------------------------------------------------------------------
@@ -482,14 +479,14 @@ evalM :: M a -> a
 evalM m = snd (runM m 0)
 
 instance Monad M where
-    return x = M $ \ n -> (n, x)
+    return = pure
     M u >>= f = M $ \ m -> let (n, x) = u m in runM (f x) n
 
 instance Functor M where
     fmap f (M u) = M $ \ m -> let (n, x) = u m in (n, f x)
 
 instance Applicative M where
-    pure = return
+    pure x = M $ \ n -> (n, x)
     (<*>) = ap
 
 step :: M Int
