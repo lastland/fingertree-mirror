@@ -12,6 +12,9 @@
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 710
+{-# LANGUAGE DeriveAnyClass #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.FingerTree
@@ -92,6 +95,7 @@ import Data.Foldable (Foldable(foldMap))
 #if (MIN_VERSION_base(4,9,0)) && !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup
 #endif
+import Control.DeepSeq
 import Data.Foldable (toList)
 
 infixr 5 ><
@@ -105,6 +109,9 @@ data ViewL s a
     deriving (Eq, Ord, Show, Read
 #if __GLASGOW_HASKELL__ >= 706
         , Generic
+#if __GLASGOW_HASKELL__ >= 710
+        , NFData
+#endif
 #endif
         )
 
@@ -116,6 +123,9 @@ data ViewR s a
     deriving (Eq, Ord, Show, Read
 #if __GLASGOW_HASKELL__ >= 706
         , Generic
+#if __GLASGOW_HASKELL__ >= 710
+        , NFData
+#endif
 #endif
         )
 
@@ -149,6 +159,9 @@ data Digit a
     deriving (Show
 #if __GLASGOW_HASKELL__ >= 706
         , Generic
+#if __GLASGOW_HASKELL__ >= 710
+        , NFData
+#endif
 #endif
         )
 
@@ -177,6 +190,9 @@ data Node v a = Node2 !v a a | Node3 !v a a a
     deriving (Show
 #if __GLASGOW_HASKELL__ >= 706
         , Generic
+#if __GLASGOW_HASKELL__ >= 710
+        , NFData
+#endif
 #endif
         )
 
@@ -217,8 +233,13 @@ data FingerTree v a
     deriving (Show
 #if __GLASGOW_HASKELL__ >= 706
         , Generic
+#if __GLASGOW_HASKELL__ >= 710
+        , NFData
+#endif
 #endif
         )
+#elif __GLASGOW_HASKELL__ >= 710
+    deriving (Generic, NFData)
 #elif __GLASGOW_HASKELL__ >= 706
     deriving (Generic)
 #endif
@@ -1128,6 +1149,9 @@ data SearchResult v a
     deriving (Eq, Ord, Show
 #if __GLASGOW_HASKELL__ >= 706
         , Generic
+#if __GLASGOW_HASKELL__ >= 710
+        , NFData
+#endif
 #endif
         )
 

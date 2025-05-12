@@ -9,6 +9,9 @@
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 710
+{-# LANGUAGE DeriveAnyClass #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.PriorityQueue.FingerTree
@@ -65,6 +68,7 @@ import Data.Traversable (Traversable(traverse))
 #if (MIN_VERSION_base(4,9,0)) && !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup
 #endif
+import Control.DeepSeq
 import Data.Foldable (toList)
 
 ----------------------------------
@@ -77,6 +81,9 @@ data Interval v = Interval v v -- ^ Lower and upper bounds of the interval.
     deriving (Eq, Ord, Show, Read
 #if __GLASGOW_HASKELL__ >= 706
         , Generic
+#if __GLASGOW_HASKELL__ >= 710
+        , NFData
+#endif
 #endif
         )
 
@@ -96,6 +103,9 @@ data Node v a = Node (Interval v) a
     deriving (Eq, Ord, Show, Read
 #if __GLASGOW_HASKELL__ >= 706
         , Generic
+#if __GLASGOW_HASKELL__ >= 710
+        , NFData
+#endif
 #endif
         )
 
@@ -110,7 +120,9 @@ instance Traversable (Node v) where
 
 -- rightmost interval (including largest lower bound) and largest upper bound.
 data IntInterval v = NoInterval | IntInterval (Interval v) v
-#if __GLASGOW_HASKELL__ >= 706
+#if __GLASGOW_HASKELL__ >= 710
+    deriving (Generic, NFData)
+#elif __GLASGOW_HASKELL__ >= 706
     deriving (Generic)
 #endif
 
@@ -137,7 +149,9 @@ instance (Ord v) => Measured (IntInterval v) (Node v a) where
 -- | Map of closed intervals, possibly with duplicates.
 newtype IntervalMap v a =
     IntervalMap (FingerTree (IntInterval v) (Node v a))
-#if __GLASGOW_HASKELL__ >= 706
+#if __GLASGOW_HASKELL__ >= 710
+    deriving (Generic, NFData)
+#elif __GLASGOW_HASKELL__ >= 706
     deriving (Generic)
 #endif
 -- ordered lexicographically by interval

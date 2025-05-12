@@ -9,6 +9,9 @@
 #if __GLASGOW_HASKELL__ >= 710 && __GLASGOW_HASKELL__ < 802
 {-# LANGUAGE AutoDeriveTypeable #-}
 #endif
+#if __GLASGOW_HASKELL__ >= 710
+{-# LANGUAGE DeriveAnyClass #-}
+#endif
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.PriorityQueue.FingerTree
@@ -74,10 +77,13 @@ import Data.Monoid
 import Data.Semigroup
 #endif
 import Control.Arrow ((***))
+import Control.DeepSeq
 import Data.List (unfoldr)
 
 data Entry k v = Entry k v
-#if __GLASGOW_HASKELL__ >= 706
+#if __GLASGOW_HASKELL__ >= 710
+    deriving (Generic, NFData)
+#elif __GLASGOW_HASKELL__ >= 706
     deriving (Generic)
 #endif
 
@@ -88,7 +94,9 @@ instance Foldable (Entry k) where
     foldMap f (Entry _ v) = f v
 
 data Prio k v = NoPrio | Prio k v
-#if __GLASGOW_HASKELL__ >= 706
+#if __GLASGOW_HASKELL__ >= 710
+    deriving (Generic, NFData)
+#elif __GLASGOW_HASKELL__ >= 706
     deriving (Generic)
 #endif
 
@@ -115,7 +123,9 @@ instance Ord k => Measured (Prio k v) (Entry k v) where
 
 -- | Priority queues.
 newtype PQueue k v = PQueue (FingerTree (Prio k v) (Entry k v))
-#if __GLASGOW_HASKELL__ >= 706
+#if __GLASGOW_HASKELL__ >= 710
+    deriving (Generic, NFData)
+#elif __GLASGOW_HASKELL__ >= 706
     deriving (Generic)
 #endif
 
