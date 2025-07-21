@@ -1,5 +1,8 @@
 -*-change-log-*-
 
+0.1.6.2 Ross Paterson <R.Paterson@city.ac.uk> Jul 2025
+	* Change http links in docs to https
+
 0.1.6.1 Ross Paterson <R.Paterson@city.ac.uk> May 2025
 	* Added NFData instances
 
