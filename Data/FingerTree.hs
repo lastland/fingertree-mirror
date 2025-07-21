@@ -33,7 +33,7 @@
 --  * Ralf Hinze and Ross Paterson,
 --    \"Finger trees: a simple general-purpose data structure\",
 --    /Journal of Functional Programming/ 16:2 (2006) pp 197-217.
---    <http://staff.city.ac.uk/~ross/papers/FingerTree.html>
+--    <https://staff.city.ac.uk/~ross/papers/FingerTree.html>
 --
 -- For a directly usable sequence type, see @Data.Sequence@, which is
 -- a specialization of this structure.

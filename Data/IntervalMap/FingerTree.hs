@@ -27,7 +27,7 @@
 --  * Ralf Hinze and Ross Paterson,
 --    \"Finger trees: a simple general-purpose data structure\",
 --    /Journal of Functional Programming/ 16:2 (2006) pp 197-217.
---    <http://staff.city.ac.uk/~ross/papers/FingerTree.html>
+--    <https://staff.city.ac.uk/~ross/papers/FingerTree.html>
 --
 -- An amortized running time is given for each operation, with /n/
 -- referring to the size of the priority queue.  These bounds hold even
