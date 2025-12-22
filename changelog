@@ -1,5 +1,8 @@
 -*-change-log-*-
 
+0.1.6.3 Ross Paterson <R.Paterson@city.ac.uk> Dec 2025
+	* Patches for MicroHS
+
 0.1.6.2 Ross Paterson <R.Paterson@city.ac.uk> Jul 2025
 	* Change http links in docs to https
 
