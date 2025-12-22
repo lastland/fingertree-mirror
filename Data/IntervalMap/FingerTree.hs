@@ -61,8 +61,10 @@ import GHC.Generics
 import qualified Prelude (null)
 #else
 import Control.Applicative ((<$>))
-import Data.Foldable (Foldable(foldMap))
 import Data.Monoid
+#endif
+#if !(MIN_VERSION_base(4,8,0)) || defined(__MHS__)
+import Data.Foldable (Foldable(foldMap))
 import Data.Traversable (Traversable(traverse))
 #endif
 #if (MIN_VERSION_base(4,9,0)) && !(MIN_VERSION_base(4,11,0))

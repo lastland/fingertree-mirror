@@ -90,6 +90,8 @@ import qualified Prelude (null)
 #else
 import Control.Applicative (Applicative(pure, (<*>)), (<$>))
 import Data.Monoid
+#endif
+#if !(MIN_VERSION_base(4,8,0)) || defined(__MHS__)
 import Data.Foldable (Foldable(foldMap))
 #endif
 #if (MIN_VERSION_base(4,9,0)) && !(MIN_VERSION_base(4,11,0))
