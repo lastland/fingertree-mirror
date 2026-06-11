@@ -47,11 +47,14 @@ module Data.IntervalMap.FingerTree (
     -- * Searching
     search, intersections, dominators,
     -- * Extraction
-    assocs, bounds, leastView, splitAfter
+    assocs, bounds, leastView, greatestView, splitAfter
     ) where
 
 import qualified Data.FingerTree as FT
-import Data.FingerTree (FingerTree, Measured(..), ViewL(..), (<|), (><))
+import Data.FingerTree (
+    FingerTree, Measured(..), ViewL(..), ViewR(..),
+    (<|), (><)
+    )
 
 import Prelude hiding (null)
 #if MIN_VERSION_base(4,6,0)
@@ -305,7 +308,18 @@ leastView :: Ord v =>
     IntervalMap v a -> Maybe ((Interval v, a), IntervalMap v a)
 leastView (IntervalMap t) = case FT.viewl t of
     EmptyL -> Nothing
-    Node i a FT.:< t' -> Just ((i, a), IntervalMap t')
+    Node i a :< t' -> Just ((i, a), IntervalMap t')
+
+-- | /O(1)/.  @'greatestView' m@ returns @'Nothing'@ if @m@ is empty, and
+-- otherwise @'Just' ((i, x), m')@, where @i@ is the greatest interval,
+-- @x@ is the associated value, and @m'@ is the rest of the map.
+--
+-- @since 0.1.7.0
+greatestView :: Ord v =>
+    IntervalMap v a -> Maybe ((Interval v, a), IntervalMap v a)
+greatestView (IntervalMap t) = case FT.viewr t of
+    EmptyR -> Nothing
+    t' :> Node i a -> Just ((i, a), IntervalMap t')
 
 -- | /O(log(min(i,n-i)))/.  @'splitAfter' k m@ returns a pair of submaps,
 -- one consisting of intervals whose lower bound is less than or equal
