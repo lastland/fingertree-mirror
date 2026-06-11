@@ -43,11 +43,11 @@ module Data.IntervalMap.FingerTree (
     -- * Intervals
     Interval(..), low, high, point,
     -- * Interval maps
-    IntervalMap, empty, singleton, insert, union,
+    IntervalMap, empty, singleton, insert, union, fromList,
     -- * Searching
     search, intersections, dominators,
     -- * Extraction
-    bounds, leastView, splitAfter
+    assocs, bounds, leastView, splitAfter
     ) where
 
 import qualified Data.FingerTree as FT
@@ -245,6 +245,14 @@ union (IntervalMap xs) (IntervalMap ys) = IntervalMap (merge1 xs ys)
             larger (IntInterval k _) = k > i
             larger NoInterval = error "larger NoInterval"
 
+-- | /O(n)/. Create an interval map from a finite list of interval-value
+-- pairs.  Repeated intervals will generate multiple entries in the map,
+-- in the same order as the original list.
+--
+-- @since 0.1.7.0
+fromList :: (Ord v) => [(Interval v, a)] -> IntervalMap v a
+fromList = foldr (uncurry insert) empty
+
 -- | /O(k log (n/\//k))/.  All intervals that intersect with the given
 -- interval, in lexicographical order.
 intersections :: (Ord v) => Interval v -> IntervalMap v a -> [(Interval v, a)]
@@ -268,6 +276,13 @@ inRange lo hi (IntervalMap t) = matches (FT.takeUntil (greater hi) t)
     matches xs  =  case FT.viewl (FT.dropUntil (atleast lo) xs) of
         EmptyL    ->  []
         Node i x :< xs'  ->  (i, x) : matches xs'
+
+-- | /O(n)/.  All the associations of intervals and values in the map,
+-- in lexicographical order of intervals.
+--
+-- @since 0.1.7.0
+assocs :: IntervalMap v a -> [(Interval v, a)]
+assocs (IntervalMap t) = [(i, a) | Node i a <- toList t]
 
 -- | /O(1)/.  @'bounds' m@ returns @'Nothing'@ if @m@ is empty, and
 -- otherwise @'Just' i@, where @i@ is the smallest interval containing
