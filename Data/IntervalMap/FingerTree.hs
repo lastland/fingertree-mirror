@@ -14,7 +14,7 @@
 #endif
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.PriorityQueue.FingerTree
+-- Module      :  Data.IntervalMap.FingerTree
 -- Copyright   :  (c) Ross Paterson 2008
 -- License     :  BSD-style
 -- Maintainer  :  R.Paterson@city.ac.uk
